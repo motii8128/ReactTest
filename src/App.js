@@ -5,6 +5,8 @@ import StatusPanel from './StatusPanel';
 import ControlPanel from './ControlPanel';
 
 const ROS_URL = 'ws://192.168.11.65:9090';
+const sub_topic = '/to_wpc';
+const pub_topic = '/from_wpc';
 
 function App() {
   const rosRef = useRef(null);
@@ -23,13 +25,13 @@ function App() {
 
       const sub = new ROSLIB.Topic({
         ros: ros,
-        name: '/to_wpc',
+        name: sub_topic,
         messageType: 'geometry_msgs/Point'
       });
 
       const pub = new ROSLIB.Topic({
         ros: ros,
-        name: '/from_wpc',
+        name: pub_topic,
         messageType: 'geometry_msgs/Point'
       });
 
