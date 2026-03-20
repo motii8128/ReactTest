@@ -55,7 +55,7 @@ function App() {
 
       ros.on('close', () => {
         setConnected(false);
-        reconnectTimer.current = setTimeout(connect, 3000);
+        reconnectTimer.current = setTimeout(connect, 1000);
       });
     };
 
