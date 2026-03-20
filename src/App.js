@@ -38,10 +38,10 @@ function CurrentView()
 
   return(
     <div>
-      <p style={{ fontSize: "48px" }}>Great Hako Date</p>
-      <p>x:{cur_pos.x}</p>
-      <p>y:{cur_pos.y}</p>
-      <p>rotation:{cur_pos.r}</p>
+      {/* <p style={{ fontSize: "48px" }}>Great Hako Date</p> */}
+      <p style={{ fontSize: "36px" }}>x:{cur_pos.x}</p>
+      <p style={{ fontSize: "36px" }}>y:{cur_pos.y}</p>
+      <p style={{ fontSize: "36px" }}>rotation:{cur_pos.r}</p>
     </div>
   );
   
@@ -49,7 +49,7 @@ function CurrentView()
 
 function TargetPublisher()
 {
-  const send = () =>{
+  const start = () =>{
     const msg = new ROSLIB.Message({
         x : 1.0,
         y : 0.0,
@@ -68,18 +68,30 @@ function TargetPublisher()
     pub_target.publish(msg);
   }
 
+  const reset = () =>{
+    const msg = new ROSLIB.Message({
+        x : 0.0,
+        y : 0.0,
+        z : 0.0
+    });
+    pub_target.publish(msg);
+  }
+
 
   const Click = () => {
-      send();
+    start();
   }
 
   const StopClick = () => {
-      stop();
+    stop();
+  }
+
+  const ResetClick = () =>{
+    reset();
   }
 
   return(
     <div>
-      <p></p>
       <button onClick={Click} style={{
           fontSize: '24px', 
           padding: '40px 80px',
@@ -97,6 +109,16 @@ function TargetPublisher()
           borderRadius: '5px',
           cursor: 'pointer', 
           marginLeft: '20px'}}>Stop</button>
+
+      <button onClick={ResetClick} style={{
+          fontSize: '24px', 
+          padding: '40px 80px',
+          backgroundColor: '#3652f4',
+          color: 'white',
+          border: 'none',
+          borderRadius: '5px',
+          cursor: 'pointer', 
+          marginLeft: '20px'}}>Reset</button>
 
     </div>
   );
