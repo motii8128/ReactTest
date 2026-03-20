@@ -1,139 +1,89 @@
 import './App.css';
 import ROSLIB from 'roslib';
-import { useState , useEffect} from 'react';
+import { useState, useEffect, useRef } from 'react';
+import StatusPanel from './StatusPanel';
+import ControlPanel from './ControlPanel';
 
-const ros = new ROSLIB.Ros({
-  url: 'ws://192.168.11.12:9090'
-});
+const ROS_URL = 'ws://192.168.11.65:9090';
 
-const sub_current = new ROSLIB.Topic({
-    ros : ros,
-    name : '/to_wpc',
-    messageType : 'geometry_msgs/Point'
-});
+function App() {
+  const rosRef = useRef(null);
+  const reconnectTimer = useRef(null);
 
-const pub_target = new ROSLIB.Topic({
-    ros : ros,
-    name : '/from_wpc',
-    messageType : 'geometry_msgs/Point'
-});
+  const subRef = useRef(null);
+  const pubRef = useRef(null);
 
-function CurrentView()
-{
-  const [cur_pos, setPosition] = useState({x:0.0, y:0.0, r : 0.0});
+  const [connected, setConnected] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0, r: 0 });
 
-  useEffect(()=>{
-    sub_current.subscribe((msg)=>{
-      setPosition({
-        x: msg.x,
-        y: msg.y,
-        r: msg.z
+  useEffect(() => {
+    const connect = () => {
+      const ros = new ROSLIB.Ros({ url: ROS_URL });
+      rosRef.current = ros;
+
+      const sub = new ROSLIB.Topic({
+        ros: ros,
+        name: '/to_wpc',
+        messageType: 'geometry_msgs/Point'
       });
-    });
 
-    return () =>{
-      sub_current.unsubscribe();
+      const pub = new ROSLIB.Topic({
+        ros: ros,
+        name: '/from_wpc',
+        messageType: 'geometry_msgs/Point'
+      });
+
+      subRef.current = sub;
+      pubRef.current = pub;
+
+      const callback = (msg) => {
+        setPosition({
+          x: msg.x,
+          y: msg.y,
+          r: msg.z
+        });
+      };
+
+      ros.on('connection', () => {
+        setConnected(true);
+        sub.subscribe(callback);
+      });
+
+      ros.on('error', (err) => {
+        setConnected(false)
+      });
+
+      ros.on('close', () => {
+        setConnected(false);
+        reconnectTimer.current = setTimeout(connect, 3000);
+      });
+    };
+
+    connect();
+
+    return () => {
+      if (rosRef.current) rosRef.current.close();
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
     };
   }, []);
 
-  return(
-    <div>
-      {/* <p style={{ fontSize: "48px" }}>Great Hako Date</p> */}
-      <p style={{ fontSize: "36px" }}>x:{cur_pos.x}</p>
-      <p style={{ fontSize: "36px" }}>y:{cur_pos.y}</p>
-      <p style={{ fontSize: "36px" }}>rotation:{cur_pos.r}</p>
-    </div>
-  );
-  
-}
-
-function TargetPublisher()
-{
-  const start = () =>{
-    const msg = new ROSLIB.Message({
-        x : 1.0,
-        y : 0.0,
-        z : 0.0
-    });
-
-    pub_target.publish(msg);
+  const publishPoint = (x, y, z) => {
+    if (!connected || !pubRef.current) return;
+    const msg = new ROSLIB.Message({ x, y, z });
+    pubRef.current.publish(msg);
   };
 
-  const stop = () =>{
-    const msg = new ROSLIB.Message({
-        x : -1.0,
-        y : 0.0,
-        z : 0.0
-    });
-    pub_target.publish(msg);
-  }
-
-  const reset = () =>{
-    const msg = new ROSLIB.Message({
-        x : 0.0,
-        y : 0.0,
-        z : 0.0
-    });
-    pub_target.publish(msg);
-  }
-
-
-  const Click = () => {
-    start();
-  }
-
-  const StopClick = () => {
-    stop();
-  }
-
-  const ResetClick = () =>{
-    reset();
-  }
-
-  return(
-    <div>
-      <button onClick={Click} style={{
-          fontSize: '24px', 
-          padding: '40px 80px',
-          backgroundColor: '#4CAF50',
-          color: 'white',
-          border: 'none',
-          borderRadius: '5px',
-          cursor: 'pointer', }}>Start</button>
-      <button onClick={StopClick} style={{
-          fontSize: '24px', 
-          padding: '40px 80px',
-          backgroundColor: '#f44336',
-          color: 'white',
-          border: 'none',
-          borderRadius: '5px',
-          cursor: 'pointer', 
-          marginLeft: '20px'}}>Stop</button>
-
-      <button onClick={ResetClick} style={{
-          fontSize: '24px', 
-          padding: '40px 80px',
-          backgroundColor: '#3652f4',
-          color: 'white',
-          border: 'none',
-          borderRadius: '5px',
-          cursor: 'pointer', 
-          marginLeft: '20px'}}>Reset</button>
-
-    </div>
-  );
-}
-function App() {
   return (
     <div className="App">
       <header className="App-header">
-            <CurrentView />
-            <TargetPublisher />
+
+        <StatusPanel position={position} connected={connected} />
+
+        <ControlPanel publishPoint={publishPoint} />
+
       </header>
     </div>
   );
 }
-
-
 
 export default App;
